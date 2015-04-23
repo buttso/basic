@@ -2,7 +2,7 @@
 # being used violates any of the testable restrictions imposed by the 
 # WebLogic Server Basic License
 #
-# Version: 19
+# Version: 20
 #
 # To invoke this script, set the WLS classpath and
 # execute java weblogic.WLST wls-basic-measurement.py
