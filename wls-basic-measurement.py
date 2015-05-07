@@ -842,7 +842,7 @@ def diagnosticsFrameworkInfo():
         licenseDoc(LICENSE_WLDF, URL_WLDF)
 
 # Test for Active GridLink use
-# Check for ActiveGridLink=true, FanEnabled, ONS Nodes or ONS Wallet file
+# Check for ActiveGridLink=true, FanEnabled, ONS Nodes or ONS Wallet file config elements
 def activeGridLinkInfo():
     noActiveGridLinkErrors = 0
     header(ACTIVE_GRIDLINK_INFO)
@@ -851,28 +851,34 @@ def activeGridLinkInfo():
     # Examine the Oracle JDBC Parameter Beans for Active GridLink usage
     jdbcParamObjectNamePattern = ObjectName("com.bea:Type=weblogic.j2ee.descriptor.wl.JDBCOracleParamsBean,*")
     jdbcParams= mbs.queryNames(jdbcParamObjectNamePattern, None)
-    
     for jdbcParam in jdbcParams:
-      # Check for Active GridLink indicators
-      if mbs.getAttribute(jdbcParam, "ActiveGridlink") == true or mbs.getAttribute(jdbcParam, "FanEnabled") == true or mbs.getAttribute(jdbcParam, "OnsNodeList") != None or mbs.getAttribute(jdbcParam, "OnsWalletFile") != None:
-        noActiveGridLinkErrors +=1
-        dataSourceName = jdbcParam.getKeyProperty('Name')  
-
-        # Lookup the related DataSource Bean to get JNDI name     
-        jdbcDataSourceNamePattern = ObjectName("com.bea:Type=weblogic.j2ee.descriptor.wl.JDBCDataSourceParamsBean,Name=" + dataSourceName + ",*")
-        jdbcDataSources= mbs.queryNames(jdbcDataSourceNamePattern, None)
-        jndiName = ""
-        for jdbcDataSource in jdbcDataSources:
-          jndiNames = mbs.getAttribute(jdbcDataSource,"JNDINames")
-          for i in jndiNames:
-            if jndiName != "":
-              jndiName = " " + jndiName
-            jndiName = jndiName + i 
-
-        printError(USES_ACTIVE_GRIDLINK_DATASOURCE + QUOTE + dataSourceName + QUOTE + USES_ACTIVE_GRIDLINK_JNDI + QUOTE + jndiName + QUOTE + USES_ACTIVE_GRIDLINK_BEHAVIOUR)
-
+        if mbs.getAttribute(jdbcParam, "FanEnabled") == true or mbs.getAttribute(jdbcParam, "OnsNodeList") != None or mbs.getAttribute(jdbcParam, "OnsWalletFile") != None or hasActiveGridlinkAttribute(jdbcParam):
+            noActiveGridLinkErrors +=1
+            dataSourceName = jdbcParam.getKeyProperty('Name')
+            # Lookup the related DataSource Bean to get JNDI name
+            jdbcDataSourceNamePattern = ObjectName("com.bea:Type=weblogic.j2ee.descriptor.wl.JDBCDataSourceParamsBean,Name=" + dataSourceName + ",*")
+            jdbcDataSources= mbs.queryNames(jdbcDataSourceNamePattern, None)
+            jndiName = ""
+            for jdbcDataSource in jdbcDataSources:
+                jndiNames = mbs.getAttribute(jdbcDataSource,"JNDINames")
+                for i in jndiNames:
+                    if jndiName != "":
+                        jndiName = " " + jndiName
+                    jndiName = jndiName + i 
+                printError(USES_ACTIVE_GRIDLINK_DATASOURCE + QUOTE + dataSourceName + QUOTE + USES_ACTIVE_GRIDLINK_JNDI + QUOTE + jndiName + QUOTE + USES_ACTIVE_GRIDLINK_BEHAVIOUR)
     if noActiveGridLinkErrors > 0:
         licenseDoc(LICENSE_ACTIVE_GRIDLINK, URL_ACTIVE_GRIDLINK)
+
+# Determines if MBean has an "ActiveGridlink" attribute and returns value
+# Returns false otherwise
+# From WebLogic Server 12.1.2 onwards
+def hasActiveGridlinkAttribute(jdbcParam):
+    info = mbs.getMBeanInfo(jdbcParam)
+    attributes = info.getAttributes()
+    for a in attributes:
+      if a.getName() == "ActiveGridlink":
+          return mbs.getAttribute(jdbcParam, "ActiveGridlink")
+    return false
 
 # if all connection info is passed as args, use them
 # otherwise, connect manually
